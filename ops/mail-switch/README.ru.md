@@ -129,8 +129,8 @@ sudo ac-mailctl reload     # проверка конфигурации, зате
 почтового тракта понадобятся после переключения. Входящие сообщения могут
 поступать, как только новый Postfix начнёт работать.
 
-Логи supervisor: `/var/log/ac-dovecot-supervisor/current` и
-`/var/log/ac-postfix-supervisor/current`; журналы приложений остаются на прежних
+Логи supervisor: `/var/lib/ac-mail/supervisor-logs/dovecot/current` и
+`/var/lib/ac-mail/supervisor-logs/postfix/current`; журналы приложений остаются на прежних
 bind mounts. Сертификаты подключены read-only из прежнего каталога Let's Encrypt.
 Рабочие конфигурации не подтягиваются из Git автоматически этим пакетом.
 

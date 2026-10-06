@@ -42,7 +42,7 @@ def install():
             directory=r.service_dir(s);protected(directory)
             directory.mkdir(mode=0o755,parents=True,exist_ok=True)
             r.atomic(directory/'down',b'')
-            logs=Path('/var/log/ac-'+s+'-supervisor');protected(logs)
+            logs=r.STATE/'supervisor-logs'/s;protected(logs)
             logs.mkdir(mode=0o700,parents=True,exist_ok=True)
             config=logs/'config'
             if not config.exists(): r.atomic(config,b's1000000\nn10\n')

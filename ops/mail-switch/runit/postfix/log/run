@@ -1,2 +1,2 @@
 #!/bin/sh
-exec /usr/bin/svlogd -tt /var/log/ac-postfix-supervisor
+exec /usr/bin/svlogd -tt /var/lib/ac-mail/supervisor-logs/postfix
