@@ -1,0 +1,213 @@
+#!/bin/bash
+
+# Set environment variables if not already set in the environment
+export IPV4_1="${IPV4_1:-93.115.20.205}"
+export IPV6_1="${IPV6_1:-[2a0c:b9c0:f:433c::1]}"
+export CONTAINERS_NETWORK_NAME="${CONTAINERS_NETWORK_NAME:-ac_network}"
+
+export CERTS_CONTAINER_ETC_VOLUME="${CERTS_CONTAINER_ETC_VOLUME:-/var/volumes/data/letsencrypt_container_openmailserver.net/}"
+export LOG_VOLUMES_DIR="${LOG_VOLUMES_DIR:-/var/volumes/log}"
+export DATA_VOLUMES_DIR="${DATA_VOLUMES_DIR:-/var/volumes/data}"
+export PODMAN_BASE_DIR="${PODMAN_BASE_DIR:-/root/podman_network}"
+
+export CONTAINERS_ETC_GIT="${CONTAINERS_ETC_GIT:-/root/git/containers_etc}"
+export POSTGRESQL_CONTAINER_NAME="${POSTGRESQL_CONTAINER_NAME:-postgresql_container_openmailserver.net}"
+export DOVECOT_CONTAINER_NAME="${DOVECOT_CONTAINER_NAME:-dovecot_container_openmailserver.net}"
+export POSTFIX_CONTAINER_NAME="${POSTFIX_CONTAINER_NAME:-postfix_container_openmailserver.net}"
+export NGINX_CONTAINER_NAME="${NGINX_CONTAINER_NAME:-nginx_container_openmailserver.net}"
+export EJABBERD_CONTAINER_NAME="${EJABBERD_CONTAINER_NAME:-ejabberd_container_openmailserver.net}"
+
+export DOVECOT_SERVER_IPV4="${IPV4_1}"
+export DOVECOT_SERVER_IPV6="${IPV6_1}"
+export POSTFIX_SERVER_IPV4="${IPV4_1}"
+export POSTFIX_SERVER_IPV6="${IPV6_1}"
+export NGINX_SERVER_IPV4="${IPV4_1}"
+export NGINX_SERVER_IPV6="${IPV6_1}"
+export EJABBERD_SERVER_IPV4="${IPV4_1}"
+export EJABBERD_SERVER_IPV6="${IPV6_1}"
+
+# Checking root rights
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be executed with root privileges."
+  exit 1
+fi
+
+NON_INTERACTIVE=false
+for arg in "$@"; do
+    if [[ "$arg" == "--non-interactive" ]]; then
+        NON_INTERACTIVE=true
+    fi
+done
+
+# Function to query whether to continue or not in case of error
+ask_continue() {
+    if [ "$NON_INTERACTIVE" = false ]; then
+        read -p "An error has occurred. Do you want to continue running containers? (y/n): " answer
+        case "$answer" in
+            y|Y ) echo "Continuing the launch...";;
+            n|N ) echo "We are terminating execution."; exit 1;;
+            * ) echo "Incorrect choice, stopping execution."; exit 1;;
+        esac
+    else
+        echo "Error, script terminated in non-interactive mode."
+        exit 1
+    fi
+}
+
+# Check if the network exists. If not, create it.
+if ! podman network inspect ac_network > /dev/null 2>&1; then
+    echo "Creating network ${CONTAINERS_NETWORK_NAME}.."
+    podman network create \
+      --subnet=10.89.1.0/24 \
+      --subnet=fd00:10:89:1::/64 \
+      --ipv6 \
+      "${CONTAINERS_NETWORK_NAME}" > /tmp/podman_network_create.log 2>&1
+    if [ $? -ne 0 ]; then
+      echo "Error creating network. Details:"
+      cat /tmp/podman_network_create.log
+      ask_continue
+    fi
+fi
+
+# Launching containers
+if [ -e /etc/ac/managed/postgresql ]; then
+    echo "PostgreSQL is managed by ac-postgresql/runit; skipping"
+else
+echo "Starting PostgreSQL container..."
+podman run -d --replace \
+    --name "postgresql_container_openmailserver.net" \
+    --network "${CONTAINERS_NETWORK_NAME}" \
+    --ip 10.89.1.219 \
+    --ip6 fd00:10:89:1::219 \
+    --mac-address ee:86:c4:0f:1c:e4 \
+    -v "${PODMAN_BASE_DIR}/postgresql1/var/lib/postgresql/data:/var/lib/postgresql/data:Z" \
+    -v "${LOG_VOLUMES_DIR}/${POSTGRESQL_CONTAINER_NAME}/var/log:/var/log:Z" \
+    --restart always \
+    "localhost/postgresql_container:latest" > /tmp/podman_container_create.log 2>&1
+if [ $? -ne 0 ]; then
+    echo "Error creating container. Details:"
+    cat /tmp/podman_container_create.log
+    ask_continue
+fi
+
+fi
+
+echo "Starting Dovecot container..."
+podman run -d --replace \
+    --name "dovecot_container_openmailserver.net" \
+    --network "${CONTAINERS_NETWORK_NAME}" \
+    --ip 10.89.1.213 \
+    --ip6 fd00:10:89:1::213 \
+    --mac-address 1a:77:d8:6c:a6:ce \
+    -v "${CONTAINERS_ETC_GIT}/${DOVECOT_CONTAINER_NAME}/etc/dovecot:/etc/dovecot:Z" \
+    -v "${LOG_VOLUMES_DIR}/${DOVECOT_CONTAINER_NAME}/var/log:/var/log:Z" \
+    -v "${DATA_VOLUMES_DIR}/${DOVECOT_CONTAINER_NAME}/var/mail:/var/mail:Z" \
+    -v "${CERTS_CONTAINER_ETC_VOLUME}/etc/letsencrypt:/etc/letsencrypt:Z" \
+    -p "${DOVECOT_SERVER_IPV4}:993:993" \
+    -p "${DOVECOT_SERVER_IPV4}:995:995" \
+    -p "${DOVECOT_SERVER_IPV6}:993:993" \
+    -p "${DOVECOT_SERVER_IPV6}:995:995" \
+    --restart always \
+    "localhost/dovecot_container:latest" > /tmp/podman_container_create.log 2>&1
+if [ $? -ne 0 ]; then
+    echo "Error creating container. Details:"
+    cat /tmp/podman_container_create.log
+    ask_continue
+fi
+
+echo "Starting Postfix container..."
+podman run -d --replace \
+    --name "postfix_container_openmailserver.net" \
+    --network "${CONTAINERS_NETWORK_NAME}" \
+    --ip 10.89.1.215 \
+    --ip6 fd00:10:89:1::215 \
+    --mac-address 1a:77:d8:6c:a6:ce \
+    -v "${CONTAINERS_ETC_GIT}/${POSTFIX_CONTAINER_NAME}/etc/postfix:/etc/postfix:Z" \
+    -v "${LOG_VOLUMES_DIR}/${POSTFIX_CONTAINER_NAME}/var/log:/var/log:Z" \
+    -v "${DATA_VOLUMES_DIR}/${DOVECOT_CONTAINER_NAME}/var/mail:/var/mail:Z" \
+    -v "${DATA_VOLUMES_DIR}/${POSTFIX_CONTAINER_NAME}/var/spool:/var/spool:Z" \
+    -v "${CERTS_CONTAINER_ETC_VOLUME}/etc/letsencrypt:/etc/letsencrypt:Z" \
+    -p "${POSTFIX_SERVER_IPV4}:25:25" \
+    -p "${POSTFIX_SERVER_IPV4}:587:587" \
+    -p "${POSTFIX_SERVER_IPV4}:465:465" \
+    -p "${POSTFIX_SERVER_IPV6}:25:25" \
+    -p "${POSTFIX_SERVER_IPV6}:587:587" \
+    -p "${POSTFIX_SERVER_IPV6}:465:465" \
+    --restart always \
+    "localhost/postfix_container:latest" > /tmp/podman_container_create.log 2>&1
+if [ $? -ne 0 ]; then
+    echo "Error creating container. Details:"
+    cat /tmp/podman_container_create.log
+    ask_continue
+fi
+
+#echo "Starting NGINX container..."
+#podman run -d --replace \
+#    --name "nginx_container_openmailserver.net" \
+#    --network "${CONTAINERS_NETWORK_NAME}" \
+#    --ip 10.89.1.224 \
+#    --ip6 fd00:10:89:1::224 \
+#    --mac-address ce:a5:c4:01:f3:cb \
+#    -v "${CONTAINERS_ETC_GIT}/${NGINX_CONTAINER_NAME}/etc/nginx:/etc/nginx:Z" \
+#    -v "${CONTAINERS_ETC_GIT}/${NGINX_CONTAINER_NAME}/etc/php:/etc/php:Z" \
+#    -v "${CONTAINERS_ETC_GIT}/${NGINX_CONTAINER_NAME}/etc/ssl/openssl.cnf:/etc/ssl/openssl.cnf:Z" \
+#    -v "${CONTAINERS_ETC_GIT}/${NGINX_CONTAINER_NAME}/usr/etc/:/usr/etc:Z" \
+#    -v "${DATA_VOLUMES_DIR}/${NGINX_CONTAINER_NAME}/var/www:/var/www:Z" \
+#    -v "${DATA_VOLUMES_DIR}/${NGINX_CONTAINER_NAME}/var/cache/nginx/wordpress:/var/cache/nginx/wordpress:Z" \
+#    -v "${LOG_VOLUMES_DIR}/${NGINX_CONTAINER_NAME}/var/log/:/var/log/:Z" \
+#    -v "${CERTS_CONTAINER_ETC_VOLUME}/etc/letsencrypt:/etc/letsencrypt:Z" \
+#    -p "${NGINX_SERVER_IPV4}:80:80/tcp" \
+#    -p "${NGINX_SERVER_IPV4}:80:80/udp" \
+#    -p "${NGINX_SERVER_IPV4}:443:443/tcp" \
+#    -p "${NGINX_SERVER_IPV4}:443:443/udp" \
+#    -p "${NGINX_SERVER_IPV4}:7777:7777/tcp" \
+#    -p "${NGINX_SERVER_IPV4}:7777:7777/udp" \
+#    -p "${NGINX_SERVER_IPV6}:80:80/tcp" \
+#    -p "${NGINX_SERVER_IPV6}:80:80/udp" \
+#    -p "${NGINX_SERVER_IPV6}:443:443/tcp" \
+#    -p "${NGINX_SERVER_IPV6}:443:443/udp" \
+#    -p "${NGINX_SERVER_IPV6}:7777:7777/tcp" \
+#    -p "${NGINX_SERVER_IPV6}:7777:7777/udp" \
+#    --restart always \
+#    "localhost/nginx_oqs_php_image:latest" > /tmp/podman_container_create.log 2>&1
+#if [ $? -ne 0 ]; then
+#    echo "Error creating container. Details:"
+#    cat /tmp/podman_container_create.log
+#    ask_continue
+#fi
+
+echo "Starting Ejabberd container..."
+podman run -d --replace \
+    --name "ejabberd_container_openmailserver.net" \
+    --network "${CONTAINERS_NETWORK_NAME}" \
+    --ip 10.89.1.221 \
+    --ip6 fd00:10:89:1::221 \
+    --mac-address 86:66:5b:a9:2f:c6 \
+    -v "${CONTAINERS_ETC_GIT}/${EJABBERD_CONTAINER_NAME}/etc/ejabberd:/etc/ejabberd:Z" \
+    -v "${LOG_VOLUMES_DIR}/${EJABBERD_CONTAINER_NAME}/var/log:/var/log:Z" \
+    -v "${CERTS_CONTAINER_ETC_VOLUME}/etc/letsencrypt:/etc/letsencrypt:Z" \
+    -v "${DATA_VOLUMES_DIR}/${EJABBERD_CONTAINER_NAME}/var/ejabberd_upload:/var/ejabberd_upload/:Z" \
+    -v "${DATA_VOLUMES_DIR}/${EJABBERD_CONTAINER_NAME}/var/conversejs:/var/conversejs/:Z" \
+    -p "${EJABBERD_SERVER_IPV4}:5222:5222" \
+    -p "${EJABBERD_SERVER_IPV4}:5223:5223" \
+    -p "${EJABBERD_SERVER_IPV4}:5269:5269" \
+    -p "${EJABBERD_SERVER_IPV4}:5270:5270" \
+    -p "${EJABBERD_SERVER_IPV4}:5282:5282" \
+    -p "${EJABBERD_SERVER_IPV4}:5283:5283" \
+    -p "${EJABBERD_SERVER_IPV4}:5349:5349" \
+    -p "${EJABBERD_SERVER_IPV6}:5222:5222" \
+    -p "${EJABBERD_SERVER_IPV6}:5223:5223" \
+    -p "${EJABBERD_SERVER_IPV6}:5269:5269" \
+    -p "${EJABBERD_SERVER_IPV6}:5270:5270" \
+    -p "${EJABBERD_SERVER_IPV6}:5282:5282" \
+    -p "${EJABBERD_SERVER_IPV6}:5283:5283" \
+    -p "${EJABBERD_SERVER_IPV6}:5349:5349" \
+    --restart always \
+    "localhost/ejabberd_container:latest" > /tmp/podman_container_create.log 2>&1
+if [ $? -ne 0 ]; then
+    echo "Error creating container. Details:"
+    cat /tmp/podman_container_create.log
+    ask_continue
+fi
+
+echo "All containers launched!"

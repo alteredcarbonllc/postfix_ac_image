@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/python3 /usr/local/libexec/ac-mail-switch/mail_runtime.py "$@"

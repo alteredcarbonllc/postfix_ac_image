@@ -1,0 +1,22 @@
+[Unit]
+Description=runit supervisor for AC postfix
+Wants=network-online.target
+After=network-online.target ac-postgresql-runit.service ac-dovecot-runit.service
+RequiresMountsFor=/var/lib/containers/storage /var/lib/ac-mail /var/volumes /etc/ac/secrets
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/var/lib/ac-mail
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/runsv /etc/ac/runit/postfix
+ExecStop=/usr/bin/sv -w 150 shutdown /etc/ac/runit/postfix
+Restart=on-failure
+RestartSec=3
+Delegate=yes
+KillMode=process
+TimeoutStopSec=infinity
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,6 @@
+{
+  "/usr/local/libexec/ac-postgresql/ac-pg-runtime.py": "7a03a7c857421e1cd04d69edaaae516508e1dfd9b31407bf4bf6f4a2f1c4af0d",
+  "/usr/local/libexec/ac-postgresql/config-deploy.py": "7a7278e24f471d7f6d20d2415f888a36c22f0da6958f1cf8c5d331a479bc5680",
+  "/etc/systemd/system/ac_containers.service": "ad4d1a210c46bcd692def2fa58e4d85ff52cbc51d707708d2f34aac3a83f6196",
+  "/etc/systemd/system/ac_containers.timer": "f4a000046573a227ec789ec8b7c4122974d9a5cbf64386a9368013ae23ad3cc5"
+}

@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Checking root rights
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be executed with root privileges."
+  exit 1
+fi
+
+# Array of container names
+CONTAINERS=( "postgresql_container_openmailserver.net" "dovecot_container_openmailserver.net" "postfix_container_openmailserver.net" "nginx_container_openmailserver.net" "ejabberd_container_openmailserver.net" )
+
+NON_INTERACTIVE=false
+for arg in "$@"; do
+    if [[ "$arg" == "--non-interactive" ]]; then
+        NON_INTERACTIVE=true
+    fi
+done
+
+# Function to ask whether to continue if an error occurs
+ask_continue() {
+    if [ "$NON_INTERACTIVE" = false ]; then
+        read -p "An error occurred. Do you want to continue stopping containers? (y/n): " choice
+        case "$choice" in
+            y|Y ) echo "Continuing...";;
+            n|N ) echo "Stopping script execution."; exit 1;;
+            * ) echo "Invalid choice, stopping execution."; exit 1;;
+        esac
+    else
+        echo "Error, script terminated in non-interactive mode."
+        exit 1
+    fi
+}
+
+# Stopping containers
+for container in "${CONTAINERS[@]}"; do
+    if [ "$container" = postgresql_container_openmailserver.net ] && [ -e /etc/ac/managed/postgresql ]; then
+        echo "PostgreSQL is managed by ac-postgresql/runit; skipping"
+        continue
+    fi
+    echo "Stopping container: $container..."
+    #podman stop "$container" && podman rm "$container"
+    podman stop "$container" > /tmp/podman_container_stop.log 2>&1 && podman rm "$container" > /tmp/podman_container_stop.log 2>&1
+    if [ $? -ne 0 ]; then
+        echo "Error stoping container. Details:"
+        cat /tmp/podman_container_stop.log
+        ask_continue
+    fi
+done
+
+# Remove network if no containers are running
+if ! podman ps -a --format '{{.Names}}' | grep -q .; then
+    echo "No running containers detected. Removing network..."
+    podman network rm "${CONTAINERS_NETWORK_NAME:-ac_network}" > /tmp/podman_network_stop.log 2>&1
+fi
+
+echo "All specified containers have been stopped and removed."

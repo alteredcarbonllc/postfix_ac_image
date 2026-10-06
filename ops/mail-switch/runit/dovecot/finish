@@ -1,0 +1,4 @@
+#!/bin/sh
+exec 2>&1
+echo "dovecot exited: code=$1 status=$2"
+sleep 2

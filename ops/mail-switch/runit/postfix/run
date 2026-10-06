@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+exec 2>&1
+export PATH=/usr/local/bin:/usr/bin:/bin
+cd /var/lib/ac-mail
+exec /usr/local/sbin/ac-mailctl run --service postfix

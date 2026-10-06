@@ -1,0 +1,4 @@
+#!/bin/sh
+# A zero exit suppresses runsv's default TERM to the attached Podman client.
+/usr/local/sbin/ac-mailctl signal-stop --service postfix
+exit 0
