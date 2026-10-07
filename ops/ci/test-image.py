@@ -56,7 +56,7 @@ def main():
         cid=pod('create','--name','ac-'+SERVICE+'-check-'+uuid.uuid4().hex[:12],
                 '--pull=never','--network=container:'+fx,'--restart=no',
                 '--entrypoint=/bin/sh',image,'-ec',
-                'while [ ! -f /tmp/ci/go ]; do sleep 0.2; done; exec '+command).stdout.strip()
+                'trap \'exit 0\' TERM INT; while [ ! -f /tmp/ci/go ]; do sleep 0.2; done; exec '+command).stdout.strip()
         ids.append(cid)
         pod('start',cid)
         info=json.loads(pod('inspect',cid).stdout)[0]
