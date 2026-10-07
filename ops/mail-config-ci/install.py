@@ -58,11 +58,11 @@ def install():
         backup=Path(tempfile.mkdtemp(prefix='config-tool-upgrade-',dir=r.STATE))
         r.atomic(backup/'mail_runtime.py',previous)
         r.atomic(backup/'sudoers.new',rules.encode(),0o440)
-        r.run(['visudo','-cf',str(backup/'sudoers.new')])
+        r.run(['/usr/sbin/visudo','-cf',str(backup/'sudoers.new')])
         for target,(source,mode) in destinations.items():r.atomic(target,source.read_bytes(),mode)
         r.atomic(runtime,updated,0o644)
         r.atomic(sudoers,rules.encode(),0o440)
-        r.run(['visudo','-c'])
+        r.run(['/usr/sbin/visudo','-c'])
         print('MAIL_CONFIG_CI_INSTALLED: no restart; backup='+str(backup))
         print('CI_DEPLOY_ENABLED='+str(c.ENABLED.exists()).lower())
 
