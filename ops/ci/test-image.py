@@ -123,8 +123,8 @@ def main():
                 '/var/spool/postfix': '0:0 755',
                 '/var/spool/postfix/active': '100:0 700',
                 '/var/spool/postfix/deferred': '100:0 700',
-                '/var/spool/postfix/maildrop': '100:103 730',
-                '/var/spool/postfix/public': '100:103 710',
+                '/var/spool/postfix/maildrop': '100:103 1730',
+                '/var/spool/postfix/public': '100:103 2710',
                 '/var/spool/postfix/private': '100:0 700',
             }
             for path, mode in expected_paths.items():
