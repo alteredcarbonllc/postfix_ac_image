@@ -1,0 +1,24 @@
+FROM ubuntu:24.04
+RUN groupadd --gid 55004 vmail \
+ && useradd --uid 55004 --gid 55004 --home-dir /var/mail --shell /usr/sbin/nologin --no-create-home vmail \
+ && groupadd --gid 102 postfix && groupadd --gid 103 postdrop \
+ && useradd --system --uid 100 --gid 102 --home-dir /var/spool/postfix --shell /usr/sbin/nologin postfix \
+ && printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d \
+ && chmod 0755 /usr/sbin/policy-rc.d \
+ && apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postfix postfix-pgsql postfix-mysql ca-certificates openssl \
+ && rm -f /usr/sbin/policy-rc.d \
+ \
+ && rm -rf /var/lib/apt/lists/* \
+ && test "$(id -u postfix):$(id -g postfix):$(getent group postdrop | cut -d: -f3)" = 100:102:103 \
+ && test "$(id -u vmail):$(id -g vmail)" = 55004:55004 \
+ && install -d -o vmail -g vmail -m 0700 /var/mail \
+ && mkdir -p /usr/local/share/ac-mail /var/log/postfix \
+ && dpkg-query -W > /usr/local/share/ac-mail/packages.txt \
+ && postconf -h mail_version > /usr/local/share/ac-mail/version.txt
+LABEL org.opencontainers.image.title="AC postfix"       org.opencontainers.image.source="https://github.com/alteredcarbonllc/postfix_ac_image"
+EXPOSE 25 587 465
+STOPSIGNAL SIGTERM
+USER root
+WORKDIR /
+CMD ["postfix", "start-fg"]

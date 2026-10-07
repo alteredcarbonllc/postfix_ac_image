@@ -1,0 +1,51 @@
+compatibility_level = 3.6
+myhostname = ci.invalid
+mydomain = ci.invalid
+myorigin = $mydomain
+mydestination =
+relay_domains =
+mynetworks =
+
+inet_interfaces = 127.0.0.1
+inet_protocols = all
+
+append_dot_mydomain = no
+biff = no
+readme_directory = no
+smtpd_banner = $myhostname ESMTP
+maillog_file = /var/log/postfix/mail.log
+
+smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination
+smtpd_reject_unlisted_recipient = yes
+smtpd_recipient_restrictions = reject_non_fqdn_recipient
+
+smtpd_sasl_auth_enable = no
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = inet:127.0.0.1:40000
+smtpd_sasl_security_options = noanonymous
+smtpd_tls_auth_only = yes
+
+smtpd_tls_security_level = may
+smtpd_tls_cert_file = /tmp/ci/cert.pem
+smtpd_tls_key_file = /tmp/ci/key.pem
+smtpd_tls_mandatory_protocols = >=TLSv1.2
+smtpd_tls_mandatory_ciphers = high
+smtpd_tls_loglevel = 1
+smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+
+smtp_tls_security_level = may
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_tls_loglevel = 1
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+
+virtual_mailbox_domains = proxy:pgsql:/etc/postfix/pgsql/virtual_mailbox_domains.pgsql
+virtual_mailbox_maps = proxy:pgsql:/etc/postfix/pgsql/virtual_mailbox_maps.pgsql
+virtual_alias_domains =
+virtual_alias_maps =
+virtual_transport = lmtp:inet:127.0.0.1:24
+lmtp_tls_security_level = none
+
+recipient_bcc_maps = proxy:pgsql:/etc/postfix/pgsql/recipient_bbc_maps.pgsql
+
+# Visible to proxymap through the default proxy_read_maps.
+smtpd_sender_login_maps = proxy:pgsql:/etc/postfix/pgsql/sender_login_maps.pgsql

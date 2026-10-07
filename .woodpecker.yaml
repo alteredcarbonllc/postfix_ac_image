@@ -1,0 +1,28 @@
+when:
+  - event: [push, manual]
+    branch: main
+
+labels:
+  backend: local
+
+steps:
+  - name: build-test-import-candidate
+    image: bash
+    environment:
+      XDG_DATA_HOME: /var/lib/ac-ci-builder/.local/share
+      XDG_CONFIG_HOME: /var/lib/ac-ci-builder/.config
+      XDG_RUNTIME_DIR: /run/user/1001
+    commands:
+      - /usr/local/bin/ac-ci-builder-store run postfix -- sh ops/ci/build-test-import.sh
+
+  - name: cleanup-builder
+    image: bash
+    environment:
+      XDG_DATA_HOME: /var/lib/ac-ci-builder/.local/share
+      XDG_CONFIG_HOME: /var/lib/ac-ci-builder/.config
+      XDG_RUNTIME_DIR: /run/user/1001
+    commands:
+      - |
+        if ! /usr/local/bin/ac-ci-builder-store cleanup --apply; then
+          echo "BUILDER_CLEANUP_WARNING: candidate imported; cleanup needs attention" >&2
+        fi

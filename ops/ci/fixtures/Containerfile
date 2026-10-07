@@ -1,0 +1,14 @@
+FROM ubuntu:24.04
+RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d \
+ && chmod 0755 /usr/sbin/policy-rc.d \
+ && mkdir -p /etc/postgresql-common \
+ && printf 'create_main_cluster = false\n' > /etc/postgresql-common/createcluster.conf \
+ && groupadd --gid 55004 vmail \
+ && useradd --uid 55004 --gid 55004 --home-dir /var/mail --shell /usr/sbin/nologin --no-create-home vmail \
+ && apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-16 python3 openssl ca-certificates dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd dovecot-pgsql \
+ && rm -f /usr/sbin/policy-rc.d \
+ && rm -rf /var/lib/apt/lists/*
+COPY ops/ci/fixtures /fixture
+STOPSIGNAL SIGTERM
+CMD ["python3", "/fixture/server.py"]
