@@ -103,7 +103,20 @@ def main():
                 write(cid,path,'hosts = 127.0.0.1\nuser = mail\npassword = ci-db-only\ndbname = mail\nquery = '+query+'\n','640')
                 pod('exec',cid,'chown','root:postfix',path)
             for key,expected_result in [('ci.invalid','ci.invalid'),('unknown.invalid','')]:
-                need(pod('exec',cid,'postmap','-q',key,'pgsql:/etc/postfix/pgsql/virtual_mailbox_domains.pgsql').stdout.strip()==expected_result,'SQL domain lookup failed')
+                lookup = pod(
+                    'exec', cid, 'postmap', '-q', key,
+                    'pgsql:/etc/postfix/pgsql/virtual_mailbox_domains.pgsql',
+                    check=False,
+                )
+                expected_code = 0 if expected_result else 1
+                need(
+                    lookup.returncode == expected_code
+                    and lookup.stdout.strip() == expected_result
+                    and not lookup.stderr.strip(),
+                    'SQL domain lookup failed: key=' + key
+                    + ' exit=' + str(lookup.returncode)
+                    + ' stderr=' + lookup.stderr.strip(),
+                )
             pod('exec',cid,'postfix','check')
             expected_paths = {
                 '/var/lib/postfix': '100:102 755',
