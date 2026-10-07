@@ -63,8 +63,12 @@ for attempt in range(40):
         if status=='OK' and data and data[0].strip(): break
     time.sleep(0.5)
 else: raise RuntimeError('Message not found through IMAP')
-with poplib.POP3_SSL('127.0.0.1',995,context=context,timeout=15) as client:
+client = poplib.POP3_SSL('127.0.0.1',995,context=context,timeout=15)
+try:
     client.user(user)
     client.pass_(password)
     need(client.stat()[0]>=1,'POP3 message absent')
+    client.quit()
+finally:
+    client.close()
 print('TLS_IMAP_POP3_AND_DELIVERY_OK')

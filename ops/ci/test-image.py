@@ -126,9 +126,12 @@ def main():
             need(json.loads(pod('inspect',cid).stdout)[0]['State']['Running'],'Candidate exited')
             time.sleep(0.5)
         else: raise RuntimeError('Candidate listener timeout')
-        result=pod('exec',fx,'python3','/fixture/probe.py',SERVICE,timeout=180)
-        print(result.stdout,end='',flush=True)
+        result=pod('exec',fx,'python3','/fixture/probe.py',SERVICE,timeout=180,check=False)
         (report/'probe.txt').write_text(result.stdout)
+        (report/'probe.stderr').write_text(result.stderr)
+        print(result.stdout,end='',flush=True)
+        print(result.stderr,end='',file=sys.stderr,flush=True)
+        result.check_returncode()
         if SERVICE=='postfix':
             for _ in range(30):
                 if not pod('exec',cid,'postqueue','-j').stdout.strip(): break
