@@ -21,6 +21,7 @@ def mkdir(path,mode=0o755):
     c.safe_parents(path)
     if path.exists() or path.is_symlink(): c.safe(path,True)
     else: path.mkdir(mode=mode)
+    path.chmod(mode)
 
 def install():
     c.need(os.geteuid()==0,'Run as root');os.umask(0o077)
