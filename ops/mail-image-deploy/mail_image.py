@@ -295,6 +295,18 @@ def deploy(report):
             print('MAIL_IMAGE_ROLLBACK_FAILED: '+str(PENDING),file=sys.stderr)
         raise
 
+def rollback_config_state(record, current):
+    need(set(current)==set(record['new_config'])==set(r.SERVICES),
+         'Configuration service set changed')
+    restored=copy.deepcopy(record['config'])
+    for kind in r.SERVICES:
+        need(current[kind]['files']==record['new_config'][kind]['files'],
+             'Configuration files changed after image deployment; rollback refused')
+        c.check_files(current[kind])
+        restored[kind]['release']=current[kind]['release']
+        restored[kind]['revision']=current[kind]['revision']
+    return restored
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action',choices=['check','deploy','recover','rollback','status'])
@@ -310,9 +322,9 @@ def main():
         if args.action=='rollback':
             protected(LAST);record=r.readjson(LAST)
             active=c.check_active()
-            need(active==record['new_active'] and r.readjson(c.CURRENT)==record['new_config'],
-                 'Active image/config state changed after deployment; manual rollback refused')
-            for entry in record['new_config'].values(): c.check_files(entry)
+            need(active==record['new_active'],
+                 'Active containers changed after deployment; manual rollback refused')
+            record['config']=rollback_config_state(record,r.readjson(c.CURRENT))
             r.COMMAND_LOG=Path(record['journal'])/'command-errors.log'
             rollback(record);return
         if args.action=='status':

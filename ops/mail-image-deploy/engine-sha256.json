@@ -1,5 +1,6 @@
 {
   "/usr/local/libexec/ac-mail-switch/mail_runtime.py": "4f46846ba390326a84ffd613398c7028e5239f6f0b10200ec01cc82ae1a94a07",
   "/usr/local/libexec/ac-mail-switch/mail_release.py": "79d23be013825dd44a3c54373bf5cc6c1dcdf0db47958369130eb498c3356744",
-  "/usr/local/libexec/ac-mail-config/mail_config.py": "50afbe0ca1b7d5cf6a29112f1460d881b80e593f6614d7beaa5e6515f22cb961"
+  "/usr/local/libexec/ac-mail-config/mail_config.py": "50afbe0ca1b7d5cf6a29112f1460d881b80e593f6614d7beaa5e6515f22cb961",
+  "/usr/local/libexec/ac-mail-image/mail_image.py": "4628b8da4b2689fcb9d9cff69a10cc92f996787e9402b29ca60fcc479cc6eae2"
 }
